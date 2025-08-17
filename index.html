@@ -259,20 +259,63 @@ button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
     }
   });
 
-  document.getElementById('importBtn').addEventListener('click', async () => {
-    const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = 'application/json';
-    inp.onchange = async (e) => {
-      const file = e.target.files[0]; if (!file) return;
-      try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        Object.assign(state, data);
-        save(); render();
-      } catch { alert('가져오기 실패: JSON 형식 오류'); }
-    };
-    inp.click();
+  // 정산표 텍스트 생성 함수(settle()와 동일 포맷 재사용)
+function buildSettlementText() {
+  const n = state.people.length || 1;
+  const foodPer = (Number(state.foodTotal)||0) / n;
+  const totalShots = state.people.reduce((a,b)=>a+(b.shots||0),0);
+
+  let lines = [];
+  lines.push(`🍲 음식: ₩${money(state.foodTotal)} 균등 / 🍶 술: ₩${money(state.alcoholTotal)} 잔수비례`);
+  lines.push('— — —');
+  state.people.forEach(p => {
+    const alcShare = totalShots>0 ? ((p.shots||0)/totalShots) * (Number(state.alcoholTotal)||0) : 0;
+    const pay = foodPer + alcShare;
+    lines.push(`${p.name}  ${p.seat?`(${p.seat}) `:''}→ ₩${money(pay)}  [${p.shots||0}잔]`);
   });
+  return lines.join('\n');
+}
+
+// JSON 백업(가져오기를 위해 유지, 길게누르기용)
+function downloadJsonBackup() {
+  const payload = JSON.stringify(state, null, 2);
+  const blob = new Blob([payload], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement('a'), {href:url, download:'drink-counter.json'});
+  a.click(); URL.revokeObjectURL(url);
+}
+
+(() => {
+  const btn = document.getElementById('exportBtn');
+  let timer = null, longPressed = false;
+
+  // 터치: 길게 누르면 JSON 백업, 떼면(길게 아님) 텍스트 공유
+  btn.addEventListener('touchstart', () => {
+    longPressed = false;
+    timer = setTimeout(() => { longPressed = true; downloadJsonBackup(); }, 600);
+  }, {passive:true});
+
+  btn.addEventListener('touchend', () => {
+    if (timer) clearTimeout(timer);
+    if (!longPressed) {
+      const text = buildSettlementText();
+      if (navigator.share) navigator.share({title:'정산표', text}).catch(()=>alert(text));
+      else alert(text);
+    }
+  });
+
+  // 마우스(PC): 우클릭=백업, 좌클릭=정산표 공유/표시
+  btn.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    downloadJsonBackup();
+  });
+  btn.addEventListener('click', () => {
+    const text = buildSettlementText();
+    if (navigator.share) navigator.share({title:'정산표', text}).catch(()=>alert(text));
+    else alert(text);
+  });
+})();
+
 
   // ---- PWA 등록 ----
   if ('serviceWorker' in navigator) {
