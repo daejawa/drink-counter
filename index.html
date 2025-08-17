@@ -17,13 +17,17 @@
   header {
     position: sticky; top: 0; background:#0f1115;
     padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
-    border-bottom:1px solid #222; z-index:2;
+    border-bottom:1px solid #222; z-index:3;
+    display:flex; align-items:center; gap:8px; justify-content:space-between;
   }
   h1 { font-size:18px; margin:0; }
+  .tabs { display:flex; gap:6px; }
+  .tab { padding:6px 10px; border-radius:999px; border:1px solid #2a2e3f; background:#141722; cursor:pointer; }
+  .tab.active { background:#2a6ef0; border-color:#2a6ef0; color:white; }
 
   .row { display:flex; gap:8px; margin:8px 16px; }
-  .row.stack { flex-direction:column; }          /* 추가 버튼을 아래로 내리기 위한 세로 배치 */
-  .row .full { width:100%; }                     /* 가로 꽉 채우는 버튼 */
+  .row.stack { flex-direction:column; }
+  .row .full { width:100%; }
 
   input[type="number"], input[type="text"] {
     flex:1; padding:12px; border-radius:10px; border:1px solid #333; background:#141722; color:#eaeaea;
@@ -32,57 +36,98 @@
   button.primary { background:#2a6ef0; border-color:#2a6ef0; color:white; }
   button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
 
-  .list { margin:8px 8px calc(120px + env(safe-area-inset-bottom)); }
+  .list { margin:8px 8px calc(140px + env(safe-area-inset-bottom)); }
 
-  /* 카드: 아바타 | 이름 | − | 숫자 | +  (고정폭으로 넘침 방지) */
+  /* 카드 레이아웃: 아바타 | 이름 | 주종 버튼 3개 | 합계 */
   .card {
-    display: grid;
-    grid-template-columns: auto 1fr 36px 56px 36px;
-    align-items: center;
-    gap: 8px;
-    padding: 12px; margin: 8px;
+    display:grid;
+    grid-template-columns: auto 1fr 40px 40px 40px 70px;
+    align-items:center;
+    gap:8px; padding:12px; margin:8px;
     background:#141722; border:1px solid #2a2e3f; border-radius:12px;
-    max-width: 100%;
   }
-  .nameSeat { min-width:0; } /* ellipsis 작동 위해 필요 */
+  .nameSeat { min-width:0; }
   .name { font-weight:600; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   .seat { font-size:12px; opacity:.7; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-
-  .pill {
-    width:36px; padding:6px 0; border-radius:8px; border:1px solid #2a2e3f; background:#1a1f2e; text-align:center;
-  }
-  .shots {
-    width:56px; text-align:center; font-variant-numeric: tabular-nums;
-  }
+  .pill { width:36px; padding:6px 0; border-radius:8px; border:1px solid #2a2e3f; background:#1a1f2e; text-align:center; }
+  .pill.small { width:40px; padding:6px 0; }
+  .shots { width:70px; text-align:right; font-variant-numeric: tabular-nums; }
 
   .footer {
     position: fixed; left:0; right:0; bottom:0; background:#0f1115; border-top:1px solid #222;
     padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    z-index:2;
   }
   .grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
   small.hint { display:block; text-align:center; opacity:.7; margin:4px 0 8px; }
+
+  /* 원형 좌석 배치 */
+  .circle-wrap { position:relative; height: 360px; margin: 16px; }
+  .table-circle {
+    position:absolute; inset:0; margin:auto; width: 320px; height:320px;
+    border-radius:50%; border:2px dashed #2a2e3f; opacity:.7;
+  }
+  .seat-dot {
+    position:absolute; width:80px; height:56px; transform:translate(-50%,-50%);
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    padding:6px; border-radius:12px; background:#141722; border:1px solid #2a2e3f; cursor:pointer;
+  }
+  .seat-dot.active { outline:2px solid #2a6ef0; }
+  .seat-dot .label { font-size:12px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:72px; }
+  .seat-legend { text-align:center; opacity:.75; font-size:12px; margin-top:6px; }
 </style>
 </head>
 <body>
-<header><h1>술잔 카운터 V1.6</h1></header>
+<header>
+  <h1>술잔 카운터</h1>
+  <div class="tabs">
+    <div class="tab active" id="tab-list">리스트</div>
+    <div class="tab" id="tab-circle">원형 좌석</div>
+    <div class="tab" id="tab-weights">가중치</div>
+  </div>
+</header>
 
 <section class="row">
   <input id="food" type="number" inputmode="numeric" placeholder="🍲 음식 총액(원)">
   <input id="alcohol" type="number" inputmode="numeric" placeholder="🍶 술 총액(원)">
 </section>
 
-<!-- 이름/좌석 입력칸 위, '추가' 버튼은 아래로 분리해 세로 배치 -->
 <section class="row stack">
   <div style="display:flex; gap:8px;">
     <input id="newName" type="text" placeholder="이름(빈칸이면 ‘손님 N’)">
-    <input id="newSeat" type="text" placeholder="좌석(선택)">
+    <input id="newSeat" type="text" placeholder="좌석번호(선택: 1,2,3…)">
   </div>
   <button id="add" class="primary full">+ 추가</button>
 </section>
 
-<small class="hint">이름/좌석을 탭하면 편집 • 잔수는 탭=+1, 길게=−1</small>
+<small class="hint">주종 버튼(소/맥/와): 탭 = +1, 길게 = −1 • 좌석번호로 원형 배치 정렬</small>
 
-<div id="list" class="list"></div>
+<!-- 뷰: 리스트 -->
+<div id="view-list">
+  <div id="list" class="list"></div>
+</div>
+
+<!-- 뷰: 원형 좌석 -->
+<div id="view-circle" style="display:none;">
+  <div class="circle-wrap">
+    <div class="table-circle"></div>
+    <div id="circle-seats"></div>
+  </div>
+  <div class="seat-legend">사람을 탭하면 선택됨 → 아래 ‘정산 보기’로 계산</div>
+</div>
+
+<!-- 뷰: 가중치 설정 -->
+<div id="view-weights" style="display:none; margin:8px 16px 120px;">
+  <div class="row">
+    <label style="flex:1;">소주 가중치<input id="w-soju" type="number" step="0.1" inputmode="decimal" placeholder="예: 1.0"></label>
+    <label style="flex:1;">맥주 가중치<input id="w-beer" type="number" step="0.1" inputmode="decimal" placeholder="예: 1.0"></label>
+  </div>
+  <div class="row">
+    <label style="flex:1;">와인 가중치<input id="w-wine" type="number" step="0.1" inputmode="decimal" placeholder="예: 1.5"></label>
+    <button id="save-weights" class="primary">가중치 저장</button>
+  </div>
+  <small class="hint">가중치는 술값 분배에만 적용됩니다. (음식값은 인원 균등)</small>
+</div>
 
 <div class="footer">
   <div class="grid" style="margin-bottom:8px">
@@ -97,14 +142,39 @@
 
 <script>
   // ---- 상태 ----
-  const state = { people: [], foodTotal: 0, alcoholTotal: 0, counter: 0 };
+  const state = {
+    people: [],
+    foodTotal: 0,
+    alcoholTotal: 0,
+    counter: 0,
+    weights: { soju: 1.0, beer: 1.0, wine: 1.5 },  // 기본 가중치
+    selectedId: null, // 원형 좌석에서 선택된 사람
+  };
 
   // ---- 저장/복원 ----
-  const save = () => localStorage.setItem('drinkCounterState', JSON.stringify(state));
+  const save = () => localStorage.setItem('drinkCounterStateV2', JSON.stringify(state));
   const load = () => {
-    const raw = localStorage.getItem('drinkCounterState');
-    if (!raw) return;
-    try { Object.assign(state, JSON.parse(raw)); } catch {}
+    // v2 우선 로드
+    const rawV2 = localStorage.getItem('drinkCounterStateV2');
+    if (rawV2) {
+      try { Object.assign(state, JSON.parse(rawV2)); } catch {}
+      return;
+    }
+    // v1 마이그레이션
+    const rawV1 = localStorage.getItem('drinkCounterState');
+    if (rawV1) {
+      try {
+        const v1 = JSON.parse(rawV1);
+        state.people = (v1.people||[]).map(p=>({
+          id: p.id || crypto.randomUUID(),
+          name: p.name, seat: p.seat || '',
+          drinks: { soju: p.shots||0, beer: 0, wine: 0 } // shots를 소주로 이관
+        }));
+        state.foodTotal = v1.foodTotal||0;
+        state.alcoholTotal = v1.alcoholTotal||0;
+        state.counter = v1.counter||state.people.length;
+      } catch {}
+    }
   };
 
   // ---- 유틸 ----
@@ -113,81 +183,161 @@
     const v = window.prompt(label, value ?? '');
     return v === null ? null : v.trim();
   };
+  const personTotalCount = p => (p.drinks.soju||0) + (p.drinks.beer||0) + (p.drinks.wine||0);
+  const personWeighted = p =>
+    (p.drinks.soju||0)*state.weights.soju +
+    (p.drinks.beer||0)*state.weights.beer +
+    (p.drinks.wine||0)*state.weights.wine;
 
-  // ---- 렌더 ----
+  // ---- 탭 전환 ----
+  const views = {
+    list: document.getElementById('view-list'),
+    circle: document.getElementById('view-circle'),
+    weights: document.getElementById('view-weights')
+  };
+  function switchTab(name){
+    document.getElementById('tab-list').classList.toggle('active', name==='list');
+    document.getElementById('tab-circle').classList.toggle('active', name==='circle');
+    document.getElementById('tab-weights').classList.toggle('active', name==='weights');
+    views.list.style.display = name==='list' ? '' : 'none';
+    views.circle.style.display = name==='circle' ? '' : 'none';
+    views.weights.style.display = name==='weights' ? '' : 'none';
+    if (name==='circle') renderCircle();
+    if (name==='weights') renderWeights();
+  }
+  document.getElementById('tab-list').onclick = ()=>switchTab('list');
+  document.getElementById('tab-circle').onclick = ()=>switchTab('circle');
+  document.getElementById('tab-weights').onclick = ()=>switchTab('weights');
+
+  // ---- 렌더(리스트) ----
   const listEl = document.getElementById('list');
-  function render() {
+  function renderList() {
     document.getElementById('food').value = state.foodTotal || '';
     document.getElementById('alcohol').value = state.alcoholTotal || '';
-
     listEl.innerHTML = '';
     state.people.forEach((p, idx) => {
+      if (!p.drinks) p.drinks = { soju:0, beer:0, wine:0 };
+
       const card = document.createElement('div'); card.className = 'card';
 
       const avatar = document.createElement('div');
       avatar.className = 'pill'; avatar.textContent = p.name.slice(0,2);
       avatar.style.cursor = 'pointer'; avatar.title = '삭제';
-      avatar.addEventListener('click', () => {
+      avatar.onclick = () => {
         if (confirm(`삭제할까요? ${p.name}`)) { state.people.splice(idx,1); save(); render(); }
-      });
+      };
 
       const nameSeat = document.createElement('div'); nameSeat.className = 'nameSeat';
       const name = document.createElement('div'); name.className = 'name'; name.textContent = p.name; name.style.cursor='pointer';
-      name.addEventListener('click', () => {
+      name.onclick = () => {
         const v = promptEdit('이름 수정', p.name); if (v !== null) { p.name = v || p.name; save(); render(); }
-      });
+      };
       const seat = document.createElement('div'); seat.className = 'seat';
       seat.textContent = p.seat ? `좌석: ${p.seat}` : '좌석 미지정'; seat.style.cursor='pointer';
-      seat.addEventListener('click', () => {
-        const v = promptEdit('좌석(빈칸=미지정)', p.seat || ''); if (v !== null) { p.seat = v || ''; save(); render(); }
-      });
+      seat.onclick = () => {
+        const v = promptEdit('좌석번호(예: 1,2,3…)', p.seat || '');
+        if (v !== null) { p.seat = v || ''; save(); render(); }
+      };
       nameSeat.appendChild(name); nameSeat.appendChild(seat);
 
-      const minus = document.createElement('button'); minus.textContent = '−'; minus.className = 'pill';
-      minus.addEventListener('click', () => { p.shots = Math.max(0, (p.shots||0) - 1); save(); render(); });
+      // 주종 버튼(소/맥/와)
+      const makeDrinkBtn = (label, key) => {
+        const b = document.createElement('button');
+        b.className = 'pill small';
+        b.textContent = label; // 소/맥/와
+        let timer=null, longPress=false, startY=0;
+        const add = () => { p.drinks[key] = (p.drinks[key]||0) + 1; save(); render(); };
+        const sub = () => { p.drinks[key] = Math.max(0, (p.drinks[key]||0) - 1); save(); render(); };
+        b.addEventListener('click', add);
+        b.addEventListener('touchstart', e => {
+          longPress=false; startY = e.touches[0].clientY;
+          timer = setTimeout(()=>{ longPress=true; sub(); timer=null; }, 500);
+        }, {passive:true});
+        b.addEventListener('touchmove', e => {
+          if (timer && Math.abs(e.touches[0].clientY-startY)>8){ clearTimeout(timer); timer=null; }
+        }, {passive:true});
+        b.addEventListener('touchend', () => { if (timer){ clearTimeout(timer); timer=null; if(!longPress) add(); }});
+        return b;
+      };
+      const sojuBtn = makeDrinkBtn('소', 'soju');
+      const beerBtn = makeDrinkBtn('맥', 'beer');
+      const wineBtn = makeDrinkBtn('와', 'wine');
 
       const shots = document.createElement('div'); shots.className = 'shots';
-      shots.textContent = `${p.shots||0}잔`; shots.style.userSelect='none'; shots.style.cursor='pointer';
-
-      // 탭=+1, 길게=−1 (롱프레스 시 +1 방지)
-      let pressTimer, longPress = false, startY = 0;
-      shots.addEventListener('touchstart', e => {
-        longPress = false; startY = e.touches[0].clientY;
-        pressTimer = setTimeout(() => { longPress = true; minus.click(); pressTimer = null; }, 500);
-      }, {passive:true});
-      shots.addEventListener('touchmove', e => {
-        if (Math.abs(e.touches[0].clientY - startY) > 8 && pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-      }, {passive:true});
-      shots.addEventListener('touchend', () => {
-        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-        if (!longPress) { p.shots = (p.shots||0) + 1; save(); render(); }
-      });
-      shots.addEventListener('click', () => { p.shots = (p.shots||0) + 1; save(); render(); });
-
-      const plus = document.createElement('button'); plus.textContent = '+'; plus.className = 'pill';
-      plus.addEventListener('click', () => { p.shots = (p.shots||0) + 1; save(); render(); });
+      shots.innerHTML = `${personTotalCount(p)}잔<br><span style="opacity:.7;font-size:12px;">w:${personWeighted(p).toFixed(1)}</span>`;
 
       card.appendChild(avatar);
       card.appendChild(nameSeat);
-      card.appendChild(minus);
+      card.appendChild(sojuBtn);
+      card.appendChild(beerBtn);
+      card.appendChild(wineBtn);
       card.appendChild(shots);
-      card.appendChild(plus);
       listEl.appendChild(card);
     });
   }
+
+  // ---- 렌더(원형 좌석) ----
+  function renderCircle(){
+    const wrap = document.getElementById('circle-seats');
+    wrap.innerHTML = '';
+    // 좌석번호가 있는 사람 먼저 정렬(숫자 오름차순), 없으면 뒤에
+    const withSeat = state.people.filter(p=>p.seat && String(p.seat).trim()!=='').sort((a,b)=>Number(a.seat)-Number(b.seat));
+    const withoutSeat = state.people.filter(p=>!p.seat || String(p.seat).trim()==='');
+    const arr = [...withSeat, ...withoutSeat];
+    const N = Math.max(arr.length, 1);
+    const cx = 160, cy = 160, R = 140; // 중심, 반지름
+    arr.forEach((p, i) => {
+      const angle = (2*Math.PI*i)/N - Math.PI/2; // 위쪽부터 시계방향
+      const x = cx + R * Math.cos(angle);
+      const y = cy + R * Math.sin(angle);
+      const dot = document.createElement('div'); dot.className='seat-dot';
+      dot.style.left = x+'px'; dot.style.top = y+'px';
+      if (state.selectedId === p.id) dot.classList.add('active');
+      dot.onclick = () => { state.selectedId = (state.selectedId===p.id ? null : p.id); renderCircle(); };
+      const label = document.createElement('div'); label.className='label';
+      const seatTxt = p.seat ? `[${p.seat}] ` : '';
+      label.textContent = `${seatTxt}${p.name} (${personTotalCount(p)}|${personWeighted(p).toFixed(1)})`;
+      dot.appendChild(label);
+      wrap.appendChild(dot);
+    });
+  }
+
+  // ---- 렌더(가중치) ----
+  function renderWeights(){
+    document.getElementById('w-soju').value = state.weights.soju;
+    document.getElementById('w-beer').value = state.weights.beer;
+    document.getElementById('w-wine').value = state.weights.wine;
+  }
+  document.getElementById('save-weights').onclick = () => {
+    const s = parseFloat(document.getElementById('w-soju').value)||0;
+    const b = parseFloat(document.getElementById('w-beer').value)||0;
+    const w = parseFloat(document.getElementById('w-wine').value)||0;
+    if (s<=0 || b<=0 || w<=0) { alert('가중치는 모두 0보다 커야 합니다.'); return; }
+    state.weights = { soju:s, beer:b, wine:w }; save(); render();
+    alert('가중치가 저장되었습니다.');
+  };
+
+  function render(){ renderList(); if (document.getElementById('tab-circle').classList.contains('active')) renderCircle(); }
 
   // ---- 정산 ----
   function buildSettlementText() {
     const n = state.people.length || 1;
     const foodPer = (Number(state.foodTotal)||0) / n;
-    const totalShots = state.people.reduce((a,b)=>a+(b.shots||0),0);
+
+    const totalWeighted = state.people.reduce((acc,p)=>acc+personWeighted(p),0);
     let lines = [];
-    lines.push(`🍲 음식: ₩${money(state.foodTotal)} 균등 / 🍶 술: ₩${money(state.alcoholTotal)} 잔수비례`);
+    lines.push(`🍲 음식 균등: ₩${money(state.foodTotal)} / 🍶 술 잔수비례: ₩${money(state.alcoholTotal)}`);
+    lines.push(`가중치: 소주 ${state.weights.soju}, 맥주 ${state.weights.beer}, 와인 ${state.weights.wine}`);
     lines.push('— — —');
     state.people.forEach(p => {
-      const alcShare = totalShots>0 ? ((p.shots||0)/totalShots) * (Number(state.alcoholTotal)||0) : 0;
+      const alcShare = totalWeighted>0 ? (personWeighted(p)/totalWeighted) * (Number(state.alcoholTotal)||0) : 0;
       const pay = foodPer + alcShare;
-      lines.push(`${p.name}  ${p.seat?`(${p.seat}) `:''}→ ₩${money(pay)}  [${p.shots||0}잔]`);
+      const parts = [];
+      if (p.drinks.soju) parts.push(`소${p.drinks.soju}`);
+      if (p.drinks.beer) parts.push(`맥${p.drinks.beer}`);
+      if (p.drinks.wine) parts.push(`와${p.drinks.wine}`);
+      const mix = parts.join('/');
+      lines.push(`${p.name}${p.seat?`(${p.seat})`:''} → ₩${money(pay)}  [${mix||'0'} | w:${personWeighted(p).toFixed(1)}]`);
     });
     return lines.join('\n');
   }
@@ -198,35 +348,34 @@
   }
 
   // ---- 이벤트 바인딩 ----
-  document.getElementById('add').addEventListener('click', () => {
+  document.getElementById('add').onclick = () => {
     const name = (document.getElementById('newName').value || '').trim();
     const seat = (document.getElementById('newSeat').value || '').trim();
     state.counter = (state.counter||0) + 1;
-    state.people.push({ id: crypto.randomUUID(), name: name || `손님 ${state.counter}`, seat: seat || '', shots: 0 });
+    state.people.push({ id: crypto.randomUUID(), name: name || `손님 ${state.counter}`, seat: seat || '', drinks:{soju:0,beer:0,wine:0} });
     document.getElementById('newName').value=''; document.getElementById('newSeat').value='';
     save(); render();
-  });
-
+  };
   document.getElementById('food').addEventListener('input', e => { state.foodTotal = Number(e.target.value||0); save(); });
   document.getElementById('alcohol').addEventListener('input', e => { state.alcoholTotal = Number(e.target.value||0); save(); });
-  document.getElementById('settle').addEventListener('click', settle);
+  document.getElementById('settle').onclick = settle;
 
-  document.getElementById('reset').addEventListener('click', () => {
+  document.getElementById('reset').onclick = () => {
     if (!confirm('모든 잔수와 금액을 0으로 리셋할까요?')) return;
-    state.people.forEach(p => p.shots=0); state.foodTotal = 0; state.alcoholTotal = 0; save(); render();
-  });
+    state.people.forEach(p => p.drinks={soju:0,beer:0,wine:0});
+    state.foodTotal = 0; state.alcoholTotal = 0; save(); render();
+  };
 
   // 가져오기
-  document.getElementById('importBtn').addEventListener('click', async () => {
+  document.getElementById('importBtn').onclick = async () => {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json';
     inp.onchange = async (e) => {
       const file = e.target.files[0]; if (!file) return;
-      try {
-        const data = JSON.parse(await file.text()); Object.assign(state, data); save(); render();
-      } catch { alert('가져오기 실패: JSON 형식 오류'); }
+      try { const data = JSON.parse(await file.text()); Object.assign(state, data); if(!state.weights) state.weights={soju:1,beer:1,wine:1.5}; save(); render(); }
+      catch { alert('가져오기 실패: JSON 형식 오류'); }
     };
     inp.click();
-  });
+  };
 
   // 정산표 내보내기(탭=텍스트 공유, 길게=JSON 백업)
   (() => {
@@ -261,7 +410,6 @@
   // ---- PWA 등록 ----
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      // 버전 쿼리로 캐시 갱신 용이
       navigator.serviceWorker.register('./sw.js?v=20250817').catch(()=>{});
     });
   }
