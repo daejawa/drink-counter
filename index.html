@@ -163,12 +163,26 @@ button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
       shots.style.cursor='pointer';
       // 탭=+1, 길게=−1
       let pressTimer;
+      let longPress = false;
+      
       shots.addEventListener('touchstart', e => {
-        pressTimer = setTimeout(() => { minus.click(); }, 500);
-      });
+        longPress = false;
+        pressTimer = setTimeout(() => {
+          longPress = true;
+          minus.click();
+          // 길게 눌러서 이미 처리했으니 타이머 비움
+          pressTimer = null;
+        }, 500);
+      }, {passive:true});
+      
       shots.addEventListener('touchend', e => {
-        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; p.shots=(p.shots||0)+1; save(); render(); }
+        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        if (!longPress) { // 길게 누른 게 아니면 +1
+          p.shots = (p.shots||0) + 1;
+          save(); render();
+        }
       });
+      
       shots.addEventListener('click', () => { p.shots=(p.shots||0)+1; save(); render(); });
 
       const plus = document.createElement('button');
@@ -240,23 +254,6 @@ button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
     state.people.forEach(p => p.shots=0);
     state.foodTotal = 0; state.alcoholTotal = 0;
     save(); render();
-  });
-
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    const payload = JSON.stringify(state, null, 2);
-    if (navigator.share) {
-      navigator.share({ text: payload, title: '술잔 카운터 데이터' }).catch(()=>{
-        const blob = new Blob([payload], {type:'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = Object.assign(document.createElement('a'), {href:url, download:'drink-counter.json'});
-        a.click(); URL.revokeObjectURL(url);
-      });
-    } else {
-      const blob = new Blob([payload], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = Object.assign(document.createElement('a'), {href:url, download:'drink-counter.json'});
-      a.click(); URL.revokeObjectURL(url);
-    }
   });
 
   // 정산표 텍스트 생성 함수(settle()와 동일 포맷 재사용)
