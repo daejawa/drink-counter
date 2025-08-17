@@ -26,13 +26,25 @@ button.primary { background:#2a6ef0; border-color:#2a6ef0; color:white; }
 button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
 .list { margin:8px 8px 120px; }
 .card {
-  display:flex; align-items:center; gap:10px; padding:12px; margin:8px;
-  background:#141722; border:1px solid #2a2e3f; border-radius:12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto; /* 아바타 | 이름+좌석 | − | 숫자 | + */
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  margin: 8px;
+  background:#141722;
+  border:1px solid #2a2e3f;
+  border-radius:12px;
+}
+
+.shots {
+  min-width: 50px; /* 필요에 맞게 조정 */
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 .nameSeat { flex:1; }
 .name { font-weight:600; }
 .seat { font-size:12px; opacity:.7; }
-.shots { min-width:72px; text-align:right; font-variant-numeric: tabular-nums; }
 .pill { padding:6px 10px; border-radius:999px; border:1px solid #2a2e3f; background:#1a1f2e; }
 .footer {
   position: fixed; left:0; right:0; bottom:0; background:#0f1115; border-top:1px solid #222;
