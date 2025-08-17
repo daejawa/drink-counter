@@ -3,76 +3,81 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>술잔 카운터 V1.1</title>
+<title>술잔 카운터</title>
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="술잔 카운터">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
+  *{ box-sizing:border-box; }
   :root { font-family: -apple-system, system-ui, Segoe UI, Roboto, sans-serif; }
   body { margin: 0; background:#0f1115; color:#eaeaea; }
-  header {
-  position: sticky; top: 0; background:#0f1115;
-  padding: calc(12px + env(safe-area-inset-top)) 16px 12px; 
-  border-bottom:1px solid #222; z-index:2;
-}
-h1 { font-size:18px; margin:0; }
-.row { display:flex; gap:8px; margin:8px 16px; }
-input[type="number"], input[type="text"] {
-  flex:1; padding:12px; border-radius:10px; border:1px solid #333; background:#141722; color:#eaeaea;
-}
-button { padding:10px 14px; border:1px solid #333; background:#1a1f2e; color:#eaeaea; border-radius:10px;}
-button.primary { background:#2a6ef0; border-color:#2a6ef0; color:white; }
-button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
-.list { margin:8px 8px 120px; }
-.card {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto auto; /* 아바타 | 이름+좌석 | − | 숫자 | + */
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  margin: 8px;
-  background:#141722;
-  border:1px solid #2a2e3f;
-  border-radius:12px;
-}
 
-.shots {
-  min-width: 50px; /* 필요에 맞게 조정 */
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.nameSeat { flex:1; }
-.name { font-weight:600; }
-.seat { font-size:12px; opacity:.7; }
-.pill {
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: 1px solid #2a2e3f;
-  background: #1a1f2e;
+  header {
+    position: sticky; top: 0; background:#0f1115;
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+    border-bottom:1px solid #222; z-index:2;
   }
+  h1 { font-size:18px; margin:0; }
+
+  .row { display:flex; gap:8px; margin:8px 16px; }
+  .row.stack { flex-direction:column; }          /* 추가 버튼을 아래로 내리기 위한 세로 배치 */
+  .row .full { width:100%; }                     /* 가로 꽉 채우는 버튼 */
+
+  input[type="number"], input[type="text"] {
+    flex:1; padding:12px; border-radius:10px; border:1px solid #333; background:#141722; color:#eaeaea;
+  }
+  button { padding:10px 14px; border:1px solid #333; background:#1a1f2e; color:#eaeaea; border-radius:10px; }
+  button.primary { background:#2a6ef0; border-color:#2a6ef0; color:white; }
+  button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
+
+  .list { margin:8px 8px calc(120px + env(safe-area-inset-bottom)); }
+
+  /* 카드: 아바타 | 이름 | − | 숫자 | +  (고정폭으로 넘침 방지) */
+  .card {
+    display: grid;
+    grid-template-columns: auto 1fr 36px 56px 36px;
+    align-items: center;
+    gap: 8px;
+    padding: 12px; margin: 8px;
+    background:#141722; border:1px solid #2a2e3f; border-radius:12px;
+    max-width: 100%;
+  }
+  .nameSeat { min-width:0; } /* ellipsis 작동 위해 필요 */
+  .name { font-weight:600; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .seat { font-size:12px; opacity:.7; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+  .pill {
+    width:36px; padding:6px 0; border-radius:8px; border:1px solid #2a2e3f; background:#1a1f2e; text-align:center;
+  }
+  .shots {
+    width:56px; text-align:center; font-variant-numeric: tabular-nums;
+  }
+
   .footer {
-  position: fixed; left:0; right:0; bottom:0; background:#0f1115; border-top:1px solid #222;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-}
+    position: fixed; left:0; right:0; bottom:0; background:#0f1115; border-top:1px solid #222;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
   .grid { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
   small.hint { display:block; text-align:center; opacity:.7; margin:4px 0 8px; }
 </style>
 </head>
 <body>
-<header>
-  <h1>술잔 카운터</h1>
-</header>
+<header><h1>술잔 카운터 V1.6</h1></header>
 
 <section class="row">
   <input id="food" type="number" inputmode="numeric" placeholder="🍲 음식 총액(원)">
   <input id="alcohol" type="number" inputmode="numeric" placeholder="🍶 술 총액(원)">
 </section>
 
-<section class="row">
-  <input id="newName" type="text" placeholder="이름(빈칸이면 ‘손님 N’)">
-  <input id="newSeat" type="text" placeholder="좌석(선택)">
-  <button id="add" class="primary">+ 추가</button>
+<!-- 이름/좌석 입력칸 위, '추가' 버튼은 아래로 분리해 세로 배치 -->
+<section class="row stack">
+  <div style="display:flex; gap:8px;">
+    <input id="newName" type="text" placeholder="이름(빈칸이면 ‘손님 N’)">
+    <input id="newSeat" type="text" placeholder="좌석(선택)">
+  </div>
+  <button id="add" class="primary full">+ 추가</button>
 </section>
 
 <small class="hint">이름/좌석을 탭하면 편집 • 잔수는 탭=+1, 길게=−1</small>
@@ -85,32 +90,21 @@ button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
     <button id="reset" class="warn">리셋</button>
   </div>
   <div class="grid">
-    <button id="exportBtn">내보내기</button>
+    <button id="exportBtn" class="primary">정산표 내보내기</button>
     <button id="importBtn">가져오기</button>
   </div>
 </div>
 
 <script>
   // ---- 상태 ----
-  const state = {
-    people: [],
-    foodTotal: 0,
-    alcoholTotal: 0,
-    counter: 0, // 손님 번호 증가용
-  };
+  const state = { people: [], foodTotal: 0, alcoholTotal: 0, counter: 0 };
 
   // ---- 저장/복원 ----
-  const save = () => {
-    localStorage.setItem('drinkCounterState', JSON.stringify(state));
-  };
+  const save = () => localStorage.setItem('drinkCounterState', JSON.stringify(state));
   const load = () => {
     const raw = localStorage.getItem('drinkCounterState');
-    if (raw) {
-      try {
-        const s = JSON.parse(raw);
-        Object.assign(state, s);
-      } catch {}
-    }
+    if (!raw) return;
+    try { Object.assign(state, JSON.parse(raw)); } catch {}
   };
 
   // ---- 유틸 ----
@@ -128,86 +122,50 @@ button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
 
     listEl.innerHTML = '';
     state.people.forEach((p, idx) => {
-      const card = document.createElement('div');
-      card.className = 'card';
+      const card = document.createElement('div'); card.className = 'card';
 
       const avatar = document.createElement('div');
-      avatar.className = 'pill';
-      avatar.textContent = p.name.slice(0,2);
-      avatar.style.cursor = 'pointer';
-      avatar.title = '삭제';
+      avatar.className = 'pill'; avatar.textContent = p.name.slice(0,2);
+      avatar.style.cursor = 'pointer'; avatar.title = '삭제';
       avatar.addEventListener('click', () => {
-        if (confirm(`삭제할까요? ${p.name}`)) {
-          state.people.splice(idx,1);
-          save(); render();
-        }
+        if (confirm(`삭제할까요? ${p.name}`)) { state.people.splice(idx,1); save(); render(); }
       });
 
-      const nameSeat = document.createElement('div');
-      nameSeat.className = 'nameSeat';
-      const name = document.createElement('div');
-      name.className = 'name';
-      name.textContent = p.name;
-      name.style.cursor='pointer';
+      const nameSeat = document.createElement('div'); nameSeat.className = 'nameSeat';
+      const name = document.createElement('div'); name.className = 'name'; name.textContent = p.name; name.style.cursor='pointer';
       name.addEventListener('click', () => {
-        const v = promptEdit('이름 수정', p.name);
-        if (v !== null) { p.name = v || p.name; save(); render(); }
+        const v = promptEdit('이름 수정', p.name); if (v !== null) { p.name = v || p.name; save(); render(); }
       });
-
-      const seat = document.createElement('div');
-      seat.className = 'seat';
-      seat.textContent = p.seat ? `좌석: ${p.seat}` : '좌석 미지정';
-      seat.style.cursor='pointer';
+      const seat = document.createElement('div'); seat.className = 'seat';
+      seat.textContent = p.seat ? `좌석: ${p.seat}` : '좌석 미지정'; seat.style.cursor='pointer';
       seat.addEventListener('click', () => {
-        const v = promptEdit('좌석(빈칸=미지정)', p.seat || '');
-        if (v !== null) { p.seat = v || ''; save(); render(); }
+        const v = promptEdit('좌석(빈칸=미지정)', p.seat || ''); if (v !== null) { p.seat = v || ''; save(); render(); }
       });
+      nameSeat.appendChild(name); nameSeat.appendChild(seat);
 
-      nameSeat.appendChild(name);
-      nameSeat.appendChild(seat);
+      const minus = document.createElement('button'); minus.textContent = '−'; minus.className = 'pill';
+      minus.addEventListener('click', () => { p.shots = Math.max(0, (p.shots||0) - 1); save(); render(); });
 
-      const minus = document.createElement('button');
-      minus.textContent = '−';
-      minus.className = 'pill';
-      minus.addEventListener('click', () => {
-        p.shots = Math.max(0, (p.shots||0) - 1); save(); render();
-      });
+      const shots = document.createElement('div'); shots.className = 'shots';
+      shots.textContent = `${p.shots||0}잔`; shots.style.userSelect='none'; shots.style.cursor='pointer';
 
-      const shots = document.createElement('div');
-      shots.className = 'shots';
-      shots.textContent = `${p.shots||0}잔`;
-      shots.style.userSelect='none';
-      shots.style.cursor='pointer';
-      // 탭=+1, 길게=−1
-      let pressTimer;
-      let longPress = false;
-      
+      // 탭=+1, 길게=−1 (롱프레스 시 +1 방지)
+      let pressTimer, longPress = false, startY = 0;
       shots.addEventListener('touchstart', e => {
-        longPress = false;
-        pressTimer = setTimeout(() => {
-          longPress = true;
-          minus.click();
-          // 길게 눌러서 이미 처리했으니 타이머 비움
-          pressTimer = null;
-        }, 500);
+        longPress = false; startY = e.touches[0].clientY;
+        pressTimer = setTimeout(() => { longPress = true; minus.click(); pressTimer = null; }, 500);
       }, {passive:true});
-      
-      shots.addEventListener('touchend', e => {
+      shots.addEventListener('touchmove', e => {
+        if (Math.abs(e.touches[0].clientY - startY) > 8 && pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+      }, {passive:true});
+      shots.addEventListener('touchend', () => {
         if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-        if (!longPress) { // 길게 누른 게 아니면 +1
-          p.shots = (p.shots||0) + 1;
-          save(); render();
-        }
+        if (!longPress) { p.shots = (p.shots||0) + 1; save(); render(); }
       });
-      
-      shots.addEventListener('click', () => { p.shots=(p.shots||0)+1; save(); render(); });
+      shots.addEventListener('click', () => { p.shots = (p.shots||0) + 1; save(); render(); });
 
-      const plus = document.createElement('button');
-      plus.textContent = '+';
-      plus.className = 'pill';
-      plus.addEventListener('click', () => {
-        p.shots = (p.shots||0) + 1; save(); render();
-      });
+      const plus = document.createElement('button'); plus.textContent = '+'; plus.className = 'pill';
+      plus.addEventListener('click', () => { p.shots = (p.shots||0) + 1; save(); render(); });
 
       card.appendChild(avatar);
       card.appendChild(nameSeat);
@@ -219,7 +177,7 @@ button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
   }
 
   // ---- 정산 ----
-  function settle() {
+  function buildSettlementText() {
     const n = state.people.length || 1;
     const foodPer = (Number(state.foodTotal)||0) / n;
     const totalShots = state.people.reduce((a,b)=>a+(b.shots||0),0);
@@ -231,14 +189,12 @@ button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
       const pay = foodPer + alcShare;
       lines.push(`${p.name}  ${p.seat?`(${p.seat}) `:''}→ ₩${money(pay)}  [${p.shots||0}잔]`);
     });
-    const text = lines.join('\n');
-
-    // 모달 대신 간단 알림 + 공유
-    if (navigator.share) {
-      navigator.share({ text, title: '정산 결과' }).catch(()=>alert(text));
-    } else {
-      alert(text);
-    }
+    return lines.join('\n');
+  }
+  function settle() {
+    const text = buildSettlementText();
+    if (navigator.share) { navigator.share({ text, title: '정산 결과' }).catch(()=>alert(text)); }
+    else { alert(text); }
   }
 
   // ---- 이벤트 바인딩 ----
@@ -246,95 +202,67 @@ button.warn { background:#3a1b1b; border-color:#5a2b2b; color:#ffb0b0; }
     const name = (document.getElementById('newName').value || '').trim();
     const seat = (document.getElementById('newSeat').value || '').trim();
     state.counter = (state.counter||0) + 1;
-    state.people.push({
-      id: crypto.randomUUID(),
-      name: name || `손님 ${state.counter}`,
-      seat: seat || '',
-      shots: 0
-    });
-    document.getElementById('newName').value='';
-    document.getElementById('newSeat').value='';
+    state.people.push({ id: crypto.randomUUID(), name: name || `손님 ${state.counter}`, seat: seat || '', shots: 0 });
+    document.getElementById('newName').value=''; document.getElementById('newSeat').value='';
     save(); render();
   });
 
-  document.getElementById('food').addEventListener('input', e => {
-    state.foodTotal = Number(e.target.value||0); save();
-  });
-  document.getElementById('alcohol').addEventListener('input', e => {
-    state.alcoholTotal = Number(e.target.value||0); save();
-  });
-
+  document.getElementById('food').addEventListener('input', e => { state.foodTotal = Number(e.target.value||0); save(); });
+  document.getElementById('alcohol').addEventListener('input', e => { state.alcoholTotal = Number(e.target.value||0); save(); });
   document.getElementById('settle').addEventListener('click', settle);
 
   document.getElementById('reset').addEventListener('click', () => {
     if (!confirm('모든 잔수와 금액을 0으로 리셋할까요?')) return;
-    state.people.forEach(p => p.shots=0);
-    state.foodTotal = 0; state.alcoholTotal = 0;
-    save(); render();
+    state.people.forEach(p => p.shots=0); state.foodTotal = 0; state.alcoholTotal = 0; save(); render();
   });
 
-  // 정산표 텍스트 생성 함수(settle()와 동일 포맷 재사용)
-function buildSettlementText() {
-  const n = state.people.length || 1;
-  const foodPer = (Number(state.foodTotal)||0) / n;
-  const totalShots = state.people.reduce((a,b)=>a+(b.shots||0),0);
-
-  let lines = [];
-  lines.push(`🍲 음식: ₩${money(state.foodTotal)} 균등 / 🍶 술: ₩${money(state.alcoholTotal)} 잔수비례`);
-  lines.push('— — —');
-  state.people.forEach(p => {
-    const alcShare = totalShots>0 ? ((p.shots||0)/totalShots) * (Number(state.alcoholTotal)||0) : 0;
-    const pay = foodPer + alcShare;
-    lines.push(`${p.name}  ${p.seat?`(${p.seat}) `:''}→ ₩${money(pay)}  [${p.shots||0}잔]`);
+  // 가져오기
+  document.getElementById('importBtn').addEventListener('click', async () => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json';
+    inp.onchange = async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      try {
+        const data = JSON.parse(await file.text()); Object.assign(state, data); save(); render();
+      } catch { alert('가져오기 실패: JSON 형식 오류'); }
+    };
+    inp.click();
   });
-  return lines.join('\n');
-}
 
-// JSON 백업(가져오기를 위해 유지, 길게누르기용)
-function downloadJsonBackup() {
-  const payload = JSON.stringify(state, null, 2);
-  const blob = new Blob([payload], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = Object.assign(document.createElement('a'), {href:url, download:'drink-counter.json'});
-  a.click(); URL.revokeObjectURL(url);
-}
-
-(() => {
-  const btn = document.getElementById('exportBtn');
-  let timer = null, longPressed = false;
-
-  // 터치: 길게 누르면 JSON 백업, 떼면(길게 아님) 텍스트 공유
-  btn.addEventListener('touchstart', () => {
-    longPressed = false;
-    timer = setTimeout(() => { longPressed = true; downloadJsonBackup(); }, 600);
-  }, {passive:true});
-
-  btn.addEventListener('touchend', () => {
-    if (timer) clearTimeout(timer);
-    if (!longPressed) {
+  // 정산표 내보내기(탭=텍스트 공유, 길게=JSON 백업)
+  (() => {
+    const btn = document.getElementById('exportBtn');
+    let timer=null, longPressed=false;
+    btn.addEventListener('touchstart', () => {
+      longPressed=false; timer=setTimeout(()=>{ longPressed=true; downloadJsonBackup(); }, 600);
+    }, {passive:true});
+    btn.addEventListener('touchend', () => {
+      if (timer) clearTimeout(timer);
+      if (!longPressed) {
+        const text = buildSettlementText();
+        if (navigator.share) navigator.share({title:'정산표', text}).catch(()=>alert(text));
+        else alert(text);
+      }
+    });
+    btn.addEventListener('contextmenu', e => { e.preventDefault(); downloadJsonBackup(); });
+    btn.addEventListener('click', () => {
       const text = buildSettlementText();
       if (navigator.share) navigator.share({title:'정산표', text}).catch(()=>alert(text));
       else alert(text);
-    }
-  });
-
-  // 마우스(PC): 우클릭=백업, 좌클릭=정산표 공유/표시
-  btn.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    downloadJsonBackup();
-  });
-  btn.addEventListener('click', () => {
-    const text = buildSettlementText();
-    if (navigator.share) navigator.share({title:'정산표', text}).catch(()=>alert(text));
-    else alert(text);
-  });
-})();
-
+    });
+  })();
+  function downloadJsonBackup() {
+    const payload = JSON.stringify(state, null, 2);
+    const blob = new Blob([payload], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), {href:url, download:'drink-counter.json'});
+    a.click(); URL.revokeObjectURL(url);
+  }
 
   // ---- PWA 등록 ----
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+      // 버전 쿼리로 캐시 갱신 용이
+      navigator.serviceWorker.register('./sw.js?v=20250817').catch(()=>{});
     });
   }
 
